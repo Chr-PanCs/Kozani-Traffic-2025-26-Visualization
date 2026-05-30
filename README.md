@@ -1,4 +1,4 @@
-<img width="1386" height="17" alt="image" src="https://github.com/user-attachments/assets/9a7f9c22-21f3-4473-bd8a-b0bd0d92043c" /># Kozani-Traffic-2025-26-Visualization
+# Kozani-Traffic-2025-26-Visualization
 ## A small project for MSc in Data Visualization using Python Pandas, Seaborne and Plotly
 - Two Datasets were given with statistics from the City of Kozani for the period 2025-2026 about local traffic and local events.
 - These datasets contained the following attributes:
