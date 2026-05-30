@@ -17,6 +17,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.io as pio
 import plotly.express as px
+import json
 df1 = pd.read_csv("local_events_kozani_2025.csv")
 df2 = pd.read_csv("urban_mobility_kozani_2025.csv")
 df1.dtypes
@@ -152,7 +153,32 @@ plt.grid(True)
 plt.show()
 """
 # Dash Traffic Count Interactive Plot
-app = Dash(__name__)
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+app = Dash(__name__, external_stylesheets=external_stylesheets)
+
+styles = {
+    'pre': {
+        'border': 'thin lightgrey solid',
+        'overflowX': 'scroll'
+    }
+}
+
+heatmap_df= df[df['EventType']!='No Event']
+fig= px.density_heatmap(
+    heatmap_df,
+    x='Attendance',
+    y='ParkingOccupancy',
+    color_continuous_scale="Viridis",
+    title="Event Attendance vs Parking Occupancy",
+    nbinsx=25,
+    nbinsy=15,
+)
+fig.update_layout(
+    clickmode='event+select',
+    xaxis_title="Attendance",
+    yaxis_title="Parking Occupancy",
+    coloraxis_colorbar_title="Count"
+)
 
 app.layout = html.Div([
     html.H1('Traffic Count in City of Kozani'),
@@ -183,8 +209,51 @@ app.layout = html.Div([
     html.Div(id='display-count'),
     dcc.Graph(id='line-chart'),
     html.H2('Heatmap'),
-    html.Button('Generate Heatmap',id='heatmap-button'),
-    dcc.Graph(id='heatmap')
+    dcc.Graph(id='heatmap',figure=fig),
+
+    html.Div(className='row', children=[
+        html.Div([
+            dcc.Markdown("""
+                **Hover Data**
+
+                Mouse over values in the graph.
+            """),
+            html.Pre(id='hover-data', style=styles['pre'])
+        ], className='three columns'),
+
+        html.Div([
+            dcc.Markdown("""
+                **Click Data**
+
+                Click on points in the graph.
+            """),
+            html.Pre(id='click-data', style=styles['pre']),
+        ], className='three columns'),
+
+        html.Div([
+            dcc.Markdown("""
+                **Selection Data**
+
+                Choose the lasso or rectangle tool in the graph's menu
+                bar and then select points in the graph.
+
+                Note that if `layout.clickmode = 'event+select'`, selection data also
+                accumulates (or un-accumulates) selected data if you hold down the shift
+                button while clicking.
+            """),
+            html.Pre(id='selected-data', style=styles['pre']),
+        ], className='three columns'),
+        
+        html.Div([
+            dcc.Markdown("""
+                **Zoom and Relayout Data**
+
+                Click and drag on the graph to zoom or click on the zoom
+                buttons in the graph's menu bar.
+            """),
+            html.Pre(id='relayout-data', style=styles['pre']),
+        ], className='three columns')
+    ])
 ])
 
 @callback(
@@ -219,28 +288,38 @@ def get_count(selected_event,selected_zone):
         count_df = df[(df['EventType'] == selected_event)&(df['Zone'] == selected_zone)]
     return "Number of Dates = "+ str(count_df.shape[0])+ " and Traffic Count mean= " +str(round(count_df['TrafficCount'].mean(),1))
 
-@app.callback( 
-    Output('heatmap', 'figure'),Input('heatmap-button','n_clicks'))
-def create_heatmap(heatmap):
-    heatmap_df= df[df['EventType']!='No Event']
-    fig= px.density_heatmap(
-        heatmap_df,
-        x='Attendance',
-        y='ParkingOccupancy',
-        color_continuous_scale="Viridis",
-        title="Event Attendance vs Parking Occupancy",
-        nbinsx=25,
-        nbinsy=15,
-    )
-    fig.update_layout(
-        xaxis_title="Attendance",
-        yaxis_title="Parking Occupancy",
-        coloraxis_colorbar_title="Count"
-    )
-    return fig
+
+@callback(
+    Output('hover-data', 'children'),
+    Input('heatmap', 'hoverData'))
+def display_hover_data(hoverData):
+    return json.dumps(hoverData, indent=2)
+
+
+@callback(
+    Output('click-data', 'children'),
+    Input('heatmap', 'clickData'))
+def display_click_data(clickData):
+    return json.dumps(clickData, indent=2)
+
+
+@callback(
+    Output('selected-data', 'children'),
+    Input('heatmap', 'selectedData'))
+def display_selected_data(selectedData):
+    return json.dumps(selectedData, indent=2)
+
+
+@callback(
+    Output('relayout-data', 'children'),
+    Input('heatmap', 'relayoutData'))
+def display_relayout_data(relayoutData):
+    return json.dumps(relayoutData, indent=2)
 
 app.run(debug=True)
 
 #END OF DASH INTERACTIVE PLOT
+
+
 
 
